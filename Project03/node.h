@@ -19,11 +19,14 @@ public:
 	vector<string> input;
 	vector<string> term;
 	
-	map<coKernel,Kernel> coKernel_kernel;
+	vector<coKernel> cokernel;
+	vector<Kernel> kernel;
 
 	static map<Kernel, KernelRecord> kernel_appear;
 	
 	void findAllKernel();
+private:
+	void findKernel(const int& col_current, const vector<int>& same_literal_row);
 };
 
 class KernelRecord

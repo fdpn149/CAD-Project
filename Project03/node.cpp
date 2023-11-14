@@ -11,7 +11,8 @@ void FuncNode::findAllKernel()
 	for (int col = 0; col < input.size(); col++)
 	{
 		vector<int> same_literal_row;
-		coKernel coKernel_current;
+
+		vector<coKernel> all_cokernel;
 
 		for (int row = 0; row < term.size(); row++)
 		{
@@ -20,48 +21,62 @@ void FuncNode::findAllKernel()
 		}
 		if (same_literal_row.size() > 1)
 		{
-			coKernel_current.insert(input[col]);
-			vector<string> common_term;
-			for (int n : same_literal_row) // distinct original term because I will modifiy it
-			{
-				string will_push = term[n];
-				will_push[col] = '0';
-				common_term.push_back(will_push);
-			}
-
-			vector<set<string>> kernel_current;
-			kernel_current.resize(common_term.size());
-			for (int col_com = 0; col_com < input.size(); col_com++) // common_term's column
-			{
-				int row;
-				for (row = 0; row < common_term.size(); row++)
-				{
-					if (common_term[row][col_com] == '0')
-						break;
-				}
-				if (row >= common_term.size())
-					coKernel_current.insert(input[col_com]);
-				else
-				{
-					for (row = 0; row < common_term.size(); row++)
-					{
-						if (common_term[row][col_com] == '1')
-							kernel_current[row].insert(input[col_com]);
-					}
-				}
-			}
-			Kernel kernel_current_sort(kernel_current.begin(), kernel_current.end());
-			coKernel_kernel[coKernel_current] = kernel_current_sort;
-			if (kernel_appear.find(kernel_current_sort) == kernel_appear.end())
-			{
-				KernelRecord newRecord;
-				newRecord.insert(this, kernel_current_sort, coKernel_current);
-				kernel_appear[kernel_current_sort] = newRecord;
-			}
-			else
-				kernel_appear[kernel_current_sort].insert(this, kernel_current_sort, coKernel_current);
+			findKernel(col, same_literal_row);
 		}
 	}
+}
+
+void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row)
+{
+	coKernel newCokernel;
+	newCokernel.insert(input[col_current]);
+
+	map<int,set<string>> newTempKernel;
+
+	for (int column = 0; column < input.size(); column++)
+	{
+		if (column == col_current)
+			continue;
+
+		bool allone = true;
+		vector<int> one;
+
+		int i;
+
+		for (i = 0; i < same_literal_row.size(); i++)	//not the same as the 'row' outside
+		{
+			if (term[same_literal_row[i]][column] == '1')
+			{
+				one.push_back(same_literal_row[i]);
+			}
+			else	//0
+			{
+				allone = false;
+			}
+		}
+		if (allone)
+		{
+			newCokernel.insert(input[column]);
+		}
+		else
+		{
+			for (const int& i_one : one)
+			{
+				newTempKernel[i_one].insert(input[column]);
+			}
+		}
+	}
+
+	
+
+	Kernel newKernel;
+	for (const auto& tempKernel : newTempKernel)
+	{
+		newKernel.insert(tempKernel.second);
+	}
+
+	cokernel.push_back(newCokernel);
+	kernel.push_back(newKernel);
 }
 
 void KernelRecord::insert(FuncNode *func, const Kernel &kernel, const coKernel &coKernel)
