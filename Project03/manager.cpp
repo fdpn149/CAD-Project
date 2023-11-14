@@ -21,19 +21,6 @@ bool Manager::ReadFile(const char* fileName)
 	return true;
 }
 
-void Manager::MaxKernelSimplify()
-{
-	// find max cost
-	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
-	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
-	{
-		if (it->cost > max_it->cost)
-			max_it = it;
-	}
-
-
-}
-
 bool Manager::processInput(ifstream &fileStream)
 {
 	string word;
@@ -85,15 +72,18 @@ bool Manager::processInput(ifstream &fileStream)
 			while (word != ".names" && word != ".end")
 			{
 				string term;
+				set<string> term_set;
 				for (int i = 0; i < word.length(); i++)
 				{
 					if (word[i] == '1')
 					{
 						term.append("01");
+						term_set.insert(inputs[2 * i + 1]);
 					}
 					else if (word[i] == '0')
 					{
 						term.append("10");
+						term_set.insert(inputs[2 * i]);
 					}
 					else if (word[i] == '-')
 					{
@@ -101,6 +91,7 @@ bool Manager::processInput(ifstream &fileStream)
 					}
 				}
 				newFunc->term.push_back(term);
+				newFunc->term_set.push_back(term_set);
 				fileStream >> word;
 				fileStream >> word;
 			}
@@ -112,4 +103,25 @@ bool Manager::processInput(ifstream &fileStream)
 
 
 	return true;
+}
+
+void Manager::MaxKernelSimplify()
+{
+	// find max cost
+	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
+	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
+	{
+		if (it->cost > max_it->cost)
+			max_it = it;
+	}
+
+	for (vector<pair<FuncNode*, int>>::iterator it = max_it->where_count.begin(); it != max_it->where_count.end(); it++)
+	{
+		divideFunc(it->first, max_it->kernel);
+	}
+}
+
+void Manager::divideFunc(FuncNode* func, const set<set<string>>& divisor)
+{
+
 }

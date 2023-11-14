@@ -21,6 +21,8 @@ public:
 	vector<string> input;
 	vector<string> term;
 	
+	vector<set<string>> term_set;
+
 	set<CoKernel> cokernel_exist;	//check exist
 	vector<CoKernel> cokernel;
 	vector<Kernel> kernel;
@@ -35,12 +37,12 @@ private:
 
 class KernelRecord
 {
-	vector<pair<FuncNode*, int>> where_count;
 public:
 	KernelRecord(FuncNode* f, const Kernel& k, const CoKernel& c);
 	int cost = 0;
 	Kernel kernel;
 	void add(FuncNode* f, CoKernel& c);
+	vector<pair<FuncNode*, int>> where_count;
 };
 
 #endif
