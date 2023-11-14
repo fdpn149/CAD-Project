@@ -13,12 +13,6 @@ public:
 	string name;
 };
 
-struct cmp {
-	bool operator() (KernelRecord a, KernelRecord b) const {
-		return a.cost > b.cost;
-	}
-};
-
 class FuncNode : Node
 {
 public:
@@ -27,10 +21,11 @@ public:
 	vector<string> input;
 	vector<string> term;
 	
-	set<CoKernel> cokernel_exist;	//check repeat
+	set<CoKernel> cokernel_exist;	//check exist
 	vector<CoKernel> cokernel;
 	vector<Kernel> kernel;
 	
+	static map<Kernel,int> kernelRecord_index;	//check exist
 	static vector<KernelRecord> kernelRecord;
 
 	void findAllKernel();

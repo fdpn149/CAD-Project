@@ -1,6 +1,7 @@
 #include "node.h"
 
 vector<KernelRecord> FuncNode::kernelRecord;
+map<Kernel, int> FuncNode::kernelRecord_index;
 
 FuncNode::~FuncNode()
 {
@@ -80,16 +81,15 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 	cokernel.push_back(newCokernel);
 	kernel.push_back(newKernel);
 
-	auto it = std::find_if(kernelRecord.begin(), kernelRecord.end(), [newKernel](KernelRecord kr)
-		{return kr.kernel == newKernel; });
 
-	if (it != kernelRecord.end())
+	if (kernelRecord_index.find(newKernel) != kernelRecord_index.end())
 	{
-		it->add(this, newCokernel);
+		kernelRecord.at(kernelRecord_index[newKernel]).add(this, newCokernel);
 	}
 	else
 	{
 		KernelRecord newKernelRecord(this, newKernel, newCokernel);
+		kernelRecord_index[newKernel] = kernelRecord.size();
 		kernelRecord.push_back(newKernelRecord);
 	}
 }
