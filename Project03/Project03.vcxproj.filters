@@ -24,6 +24,9 @@
     <ClCompile Include="node.cpp">
       <Filter>來源檔案</Filter>
     </ClCompile>
+    <ClCompile Include="kernelRecord.cpp">
+      <Filter>來源檔案</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="lib.h">
@@ -33,6 +36,9 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="node.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="kernelRecord.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>

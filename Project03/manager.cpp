@@ -21,10 +21,17 @@ bool Manager::ReadFile(const char* fileName)
 	return true;
 }
 
-void Manager::sortKernel()
+void Manager::MaxKernelSimplify()
 {
-	//kernels.insert(kernels.begin(), FuncNode::kernel_appear.begin(), FuncNode::kernel_appear.end());
-			//std::sort(kernels.begin(), kernels.end(), [](pair<Kernel, KernelRecord> a, pair<Kernel, KernelRecord> b){return a.second.sum > b.second.sum;});
+	// find max cost
+	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
+	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
+	{
+		if (it->cost > max_it->cost)
+			max_it = it;
+	}
+
+
 }
 
 bool Manager::processInput(ifstream &fileStream)

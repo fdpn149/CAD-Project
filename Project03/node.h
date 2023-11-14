@@ -1,14 +1,22 @@
 #ifndef NODE_H
 #include "lib.h"
+#include "kernelRecord.h"
 
 typedef set<set<string>> Kernel;
-typedef set<string> coKernel;
+typedef set<string> CoKernel;
+
 class KernelRecord;
 
 class Node
 {
 public:
 	string name;
+};
+
+struct cmp {
+	bool operator() (KernelRecord a, KernelRecord b) const {
+		return a.cost > b.cost;
+	}
 };
 
 class FuncNode : Node
@@ -19,11 +27,12 @@ public:
 	vector<string> input;
 	vector<string> term;
 	
-	vector<coKernel> cokernel;
+	set<CoKernel> cokernel_exist;	//check repeat
+	vector<CoKernel> cokernel;
 	vector<Kernel> kernel;
-
-	static map<Kernel, KernelRecord> kernel_appear;
 	
+	static vector<KernelRecord> kernelRecord;
+
 	void findAllKernel();
 private:
 	void findKernel(const int& col_current, const vector<int>& same_literal_row);
@@ -31,12 +40,12 @@ private:
 
 class KernelRecord
 {
-	set<pair<FuncNode*, int>> from_count;
+	vector<pair<FuncNode*, int>> where_count;
 public:
-	KernelRecord(){}
-	int sum = 0;
-	void insert(FuncNode* func, const Kernel& kernel, const coKernel& coKernel);
+	KernelRecord(FuncNode* f, const Kernel& k, const CoKernel& c);
+	int cost = 0;
+	Kernel kernel;
+	void add(FuncNode* f, CoKernel& c);
 };
-
 
 #endif

@@ -1,6 +1,6 @@
 #include "node.h"
 
-map<Kernel, KernelRecord> FuncNode::kernel_appear;
+vector<KernelRecord> FuncNode::kernelRecord;
 
 FuncNode::~FuncNode()
 {
@@ -12,7 +12,7 @@ void FuncNode::findAllKernel()
 	{
 		vector<int> same_literal_row;
 
-		vector<coKernel> all_cokernel;
+		vector<CoKernel> all_cokernel;
 
 		for (int row = 0; row < term.size(); row++)
 		{
@@ -28,10 +28,10 @@ void FuncNode::findAllKernel()
 
 void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row)
 {
-	coKernel newCokernel;
+	CoKernel newCokernel;
 	newCokernel.insert(input[col_current]);
 
-	map<int,set<string>> newTempKernel;
+	map<int, set<string>> newTempKernel;
 
 	for (int column = 0; column < input.size(); column++)
 	{
@@ -67,7 +67,8 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 		}
 	}
 
-	
+	if (cokernel_exist.find(newCokernel) != cokernel_exist.end())
+		return;
 
 	Kernel newKernel;
 	for (const auto& tempKernel : newTempKernel)
@@ -75,17 +76,33 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 		newKernel.insert(tempKernel.second);
 	}
 
+	cokernel_exist.insert(newCokernel);
 	cokernel.push_back(newCokernel);
 	kernel.push_back(newKernel);
+
+	auto it = std::find_if(kernelRecord.begin(), kernelRecord.end(), [newKernel](KernelRecord kr)
+		{return kr.kernel == newKernel; });
+
+	if (it != kernelRecord.end())
+	{
+		it->add(this, newCokernel);
+	}
+	else
+	{
+		KernelRecord newKernelRecord(this, newKernel, newCokernel);
+		kernelRecord.push_back(newKernelRecord);
+	}
 }
 
-void KernelRecord::insert(FuncNode *func, const Kernel &kernel, const coKernel &coKernel)
+KernelRecord::KernelRecord(FuncNode* f, const Kernel& k, const CoKernel& c)
 {
-	int cost = (kernel.size() - 1) * coKernel.size() - 1;
-	auto from_pair = std::make_pair(func, cost);
-	if (from_count.find(from_pair) == from_count.end())
-	{
-		from_count.insert(from_pair);
-		sum += cost;
-	}
+	kernel = k;
+	cost = c.size() * (k.size() - 1) - 1;
+	where_count.push_back(std::make_pair(f, cost));
+}
+
+void KernelRecord::add(FuncNode* f, CoKernel& c)
+{
+	cost += c.size() * (kernel.size() - 1) - 1;
+	where_count.push_back(std::make_pair(f, cost));
 }
