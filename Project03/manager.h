@@ -16,7 +16,7 @@ public:
 
 private:
 	bool processInput(ifstream &fileStream);
-	void divideFunc(FuncNode* func, const set<set<string>>& divisor);
+	void divideFunc(FuncNode* func, const SOP& divisor);
 };
 
 #endif

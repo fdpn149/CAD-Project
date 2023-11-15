@@ -6,7 +6,7 @@ Manager::Manager()
 
 Manager::~Manager()
 {
-	for(auto& node : funcNode)
+	for (auto& node : funcNode)
 		delete node;
 }
 
@@ -21,7 +21,7 @@ bool Manager::ReadFile(const char* fileName)
 	return true;
 }
 
-bool Manager::processInput(ifstream &fileStream)
+bool Manager::processInput(ifstream& fileStream)
 {
 	string word;
 	fileStream >> word;
@@ -58,7 +58,7 @@ bool Manager::processInput(ifstream &fileStream)
 			{
 				if (word != "\\")
 				{
-					inputs.push_back(word + "'");
+					inputs.push_back(word + "~");
 					inputs.push_back(word);
 				}
 				fileStream >> word;
@@ -66,7 +66,7 @@ bool Manager::processInput(ifstream &fileStream)
 			string output(*inputs.rbegin());
 			inputs.pop_back();
 			inputs.pop_back();
-			FuncNode *newFunc = new FuncNode(output);
+			FuncNode* newFunc = new FuncNode(output);
 			newFunc->input = inputs;
 
 			while (word != ".names" && word != ".end")
@@ -121,7 +121,118 @@ void Manager::MaxKernelSimplify()
 	}
 }
 
-void Manager::divideFunc(FuncNode* func, const set<set<string>>& divisor)
+void Manager::divideFunc(FuncNode* func, const SOP& divisor)
 {
+	vector<set<string>>& term_set = func->term_set;
 
+	if (divisor.size() > term_set.size())	// divisor has too many terms
+		return;
+
+	// form dividend name & matrix
+	int index_count = 0;
+	unordered_map<string, int> dividend_name_index;
+	for (const auto& i_term : term_set)
+	{
+		for (const auto& literal : i_term)
+		{
+			if (dividend_name_index.find(literal) == dividend_name_index.end())
+			{
+				dividend_name_index[literal] = index_count;
+				index_count++;
+			}
+		}
+	}
+
+	string init(index_count, '0');
+
+	int term_set_size = term_set.size();
+	vector<string> dividend_matrix(term_set_size, init);
+
+	for (int i = 0; i < term_set_size; i++)
+	{
+		for (const auto& literal : term_set[i])
+		{
+			dividend_matrix[i][dividend_name_index.at(literal)] = '1';
+		}
+	}
+
+	// form divisor name & matrix
+	index_count = 0;
+	unordered_map<string, int> divisor_name_index;
+	for (const auto& i_term : divisor)
+	{
+		for (const auto& literal : i_term)
+		{
+			if (divisor_name_index.find(literal) == divisor_name_index.end())
+			{
+				divisor_name_index[literal] = index_count;
+				index_count++;
+			}
+		}
+	}
+
+	string init2(index_count, '0');
+
+	int divisor_size = divisor.size();
+	vector<string> divisor_matrix(divisor_size, init2);
+
+	int matrix_index = 0;
+	for (auto it = divisor.begin(); it != divisor.end(); it++)
+	{
+		for (const auto& literal : *it)
+		{
+			divisor_matrix[matrix_index][divisor_name_index.at(literal)] = '1';
+		}
+		matrix_index++;
+	}
+
+	// divide
+	for (const Term& dividend_term : term_set)
+	{
+		bool remainder = true;
+		for (const Term& divisor_term : divisor)
+		{
+			int divisor_term_size = divisor_term.size();
+			bool found = false;
+			if (divisor_term_size < dividend_term.size())
+			{
+				int count = 0;
+
+				for (const string& dividend_literal : dividend_term)
+				{
+					for (const string& divisor_literal : divisor_term)
+					{
+						if (divisor_literal == dividend_literal)
+						{
+							count++;
+							if (count == divisor_term_size)
+							{
+								found = true;
+								break;
+							}
+						}
+					}
+					if (found)
+						break;
+				}
+			}
+			else if (divisor_term.size() == dividend_term.size() && divisor_term == dividend_term)
+			{
+				found = true;
+				
+			}
+			else
+				continue;
+
+			if (found)
+			{
+				remainder = false;
+				printf("found\n");
+			}
+		}
+		if (remainder == true)
+		{
+			printf("remain\n");
+		}
+	}
 }

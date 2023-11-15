@@ -1,7 +1,7 @@
 #include "node.h"
 
 vector<KernelRecord> FuncNode::kernelRecord;
-map<Kernel, int> FuncNode::kernelRecord_index;
+map<SOP, int> FuncNode::kernelRecord_index;
 
 FuncNode::~FuncNode()
 {
@@ -13,7 +13,7 @@ void FuncNode::findAllKernel()
 	{
 		vector<int> same_literal_row;
 
-		vector<CoKernel> all_cokernel;
+		vector<Term> all_cokernel;
 
 		for (int row = 0; row < term.size(); row++)
 		{
@@ -29,7 +29,7 @@ void FuncNode::findAllKernel()
 
 void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row)
 {
-	CoKernel newCokernel;
+	Term newCokernel;
 	newCokernel.insert(input[col_current]);
 
 	map<int, set<string>> newTempKernel;
@@ -71,7 +71,7 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 	if (cokernel_exist.find(newCokernel) != cokernel_exist.end())
 		return;
 
-	Kernel newKernel;
+	SOP newKernel;
 	for (const auto& tempKernel : newTempKernel)
 	{
 		newKernel.insert(tempKernel.second);
@@ -94,14 +94,14 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 	}
 }
 
-KernelRecord::KernelRecord(FuncNode* f, const Kernel& k, const CoKernel& c)
+KernelRecord::KernelRecord(FuncNode* f, const SOP& k, const Term& c)
 {
 	kernel = k;
 	cost = c.size() * (k.size() - 1) - 1;
 	where_count.push_back(std::make_pair(f, cost));
 }
 
-void KernelRecord::add(FuncNode* f, CoKernel& c)
+void KernelRecord::add(FuncNode* f, Term& c)
 {
 	cost += c.size() * (kernel.size() - 1) - 1;
 	where_count.push_back(std::make_pair(f, cost));

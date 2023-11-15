@@ -2,8 +2,8 @@
 #include "lib.h"
 #include "kernelRecord.h"
 
-typedef set<set<string>> Kernel;
-typedef set<string> CoKernel;
+typedef set<set<string>> SOP;
+typedef set<string> Term;
 
 class KernelRecord;
 
@@ -20,14 +20,14 @@ public:
 	~FuncNode();
 	vector<string> input;
 	vector<string> term;
-	
+
 	vector<set<string>> term_set;
 
-	set<CoKernel> cokernel_exist;	//check exist
-	vector<CoKernel> cokernel;
-	vector<Kernel> kernel;
+	set<Term> cokernel_exist;	//check exist
+	vector<Term> cokernel;
+	vector<SOP> kernel;
 	
-	static map<Kernel,int> kernelRecord_index;	//check exist
+	static map<SOP,int> kernelRecord_index;	//check exist
 	static vector<KernelRecord> kernelRecord;
 
 	void findAllKernel();
@@ -38,10 +38,10 @@ private:
 class KernelRecord
 {
 public:
-	KernelRecord(FuncNode* f, const Kernel& k, const CoKernel& c);
+	KernelRecord(FuncNode* f, const SOP& k, const Term& c);
 	int cost = 0;
-	Kernel kernel;
-	void add(FuncNode* f, CoKernel& c);
+	SOP kernel;
+	void add(FuncNode* f, Term& c);
 	vector<pair<FuncNode*, int>> where_count;
 };
 
