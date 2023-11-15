@@ -108,20 +108,20 @@ bool Manager::processInput(ifstream& fileStream)
 void Manager::MaxKernelSimplify()
 {
 	// find max cost
-	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin() + 0;
-	/*for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
+	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
+	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
 	{
 		if (it->cost > max_it->cost)
 			max_it = it;
-	}*/
-
-	for (; max_it != FuncNode::kernelRecord.end(); max_it++)
-	{
-		for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
-		{
-			divideFunc(it->from, max_it->kernel, it->coKernel);
-		}
 	}
+
+	/*for (; max_it != FuncNode::kernelRecord.end(); max_it++)
+	{*/
+	for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
+	{
+		divideFunc(it->from, max_it->kernel, it->coKernel);
+	}
+	//}
 }
 
 void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)

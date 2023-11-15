@@ -97,12 +97,12 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 KernelRecord::KernelRecord(FuncNode* f, const SOP& k, const Term& c)
 {
 	kernel = k;
-	cost = c.size() * (k.size() - 1) - k.size();
+	cost = c.size() * (k.size() - 1) - 1;
 	detail.push_back({cost, c, f});
 }
 
 void KernelRecord::add(FuncNode* f, Term& c)
 {
-	cost += c.size() * (kernel.size() - 1) - kernel.size();
+	cost += c.size() * (kernel.size() - 1) - 1;
 	detail.push_back({ cost, c, f });
 }
