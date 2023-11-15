@@ -108,20 +108,23 @@ bool Manager::processInput(ifstream& fileStream)
 void Manager::MaxKernelSimplify()
 {
 	// find max cost
-	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
-	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
+	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin() + 0;
+	/*for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
 	{
 		if (it->cost > max_it->cost)
 			max_it = it;
-	}
+	}*/
 
-	for (vector<pair<FuncNode*, int>>::iterator it = max_it->where_count.begin(); it != max_it->where_count.end(); it++)
+	for (; max_it != FuncNode::kernelRecord.end(); max_it++)
 	{
-		divideFunc(it->first, max_it->kernel);
+		for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
+		{
+			divideFunc(it->from, max_it->kernel, it->coKernel);
+		}
 	}
 }
 
-void Manager::divideFunc(FuncNode* func, const SOP& divisor)
+void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 {
 	vector<set<string>>& term_set = func->term_set;
 
@@ -131,6 +134,8 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor)
 	// form dividend name & matrix
 	int index_count = 0;
 	unordered_map<string, int> dividend_name_index;
+	vector<string> dividend_name;
+
 	for (const auto& i_term : term_set)
 	{
 		for (const auto& literal : i_term)
@@ -138,6 +143,7 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor)
 			if (dividend_name_index.find(literal) == dividend_name_index.end())
 			{
 				dividend_name_index[literal] = index_count;
+				dividend_name.push_back(literal);
 				index_count++;
 			}
 		}
@@ -156,8 +162,15 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor)
 		}
 	}
 
+	// form quotient
+	string quotient_str(index_count, '0');
+
+	for (const string& literal : quotient)
+		quotient_str[dividend_name_index.at(literal)] = '1';
+
+#pragma region FORM_DIVISOR
 	// form divisor name & matrix
-	index_count = 0;
+	/*index_count = 0;
 	unordered_map<string, int> divisor_name_index;
 	for (const auto& i_term : divisor)
 	{
@@ -184,55 +197,82 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor)
 			divisor_matrix[matrix_index][divisor_name_index.at(literal)] = '1';
 		}
 		matrix_index++;
-	}
+	}*/
+#pragma endregion
+
+	vector<Term> remainder;
+	int divide_count = 0;
+	bool finished = false;
 
 	// divide
-	for (const Term& dividend_term : term_set)
+	for (int i = 0; i < term_set.size(); i++)	//term_set[i] => dividend_term
 	{
-		bool remainder = true;
-		for (const Term& divisor_term : divisor)
-		{
-			int divisor_term_size = divisor_term.size();
-			bool found = false;
-			if (divisor_term_size < dividend_term.size())
-			{
-				int count = 0;
+		bool is_remainder = true;
 
-				for (const string& dividend_literal : dividend_term)
+		if (!finished)
+		{
+			for (const Term& divisor_term : divisor)
+			{
+				int divisor_term_size = divisor_term.size();
+				bool found = false;
+				if (divisor_term_size < term_set[i].size())
 				{
-					for (const string& divisor_literal : divisor_term)
+					int count = 0;
+
+					for (const string& dividend_literal : term_set[i])
 					{
-						if (divisor_literal == dividend_literal)
+						for (const string& divisor_literal : divisor_term)
 						{
-							count++;
-							if (count == divisor_term_size)
+							if (divisor_literal == dividend_literal)
 							{
-								found = true;
-								break;
+								count++;
+								if (count == divisor_term_size)
+								{
+									found = true;
+									break;
+								}
 							}
 						}
+						if (found)
+							break;
 					}
-					if (found)
+				}
+				else if (divisor_term.size() == term_set[i].size() && divisor_term == term_set[i])
+				{
+					found = true;
+
+				}
+				else
+					continue;
+
+				if (found)
+				{
+					string dividend_copy(dividend_matrix[i]);
+
+					for (const string& divisor_literal : divisor_term)
+					{
+						dividend_copy[dividend_name_index.at(divisor_literal)] = '0';
+					}
+
+					if (dividend_copy == quotient_str)
+					{
+						printf("found\n");
+						is_remainder = false;
+						divide_count++;
+
+						if (divide_count == divisor.size())
+							finished = true;
+
 						break;
+					}
 				}
 			}
-			else if (divisor_term.size() == dividend_term.size() && divisor_term == dividend_term)
-			{
-				found = true;
-				
-			}
-			else
-				continue;
-
-			if (found)
-			{
-				remainder = false;
-				printf("found\n");
-			}
 		}
-		if (remainder == true)
+
+		if (is_remainder == true)
 		{
 			printf("remain\n");
+			remainder.push_back(term_set[i]);
 		}
 	}
 }

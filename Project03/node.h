@@ -37,12 +37,18 @@ private:
 
 class KernelRecord
 {
+	struct KernelDetail
+	{
+		int count;
+		Term coKernel;
+		FuncNode* from;
+	};
 public:
 	KernelRecord(FuncNode* f, const SOP& k, const Term& c);
 	int cost = 0;
 	SOP kernel;
 	void add(FuncNode* f, Term& c);
-	vector<pair<FuncNode*, int>> where_count;
+	vector<KernelDetail> detail;
 };
 
 #endif
