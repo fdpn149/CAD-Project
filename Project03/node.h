@@ -10,29 +10,37 @@ class KernelRecord;
 class Node
 {
 public:
+	Node(string n) : name(n) {}
 	string name;
+};
+
+class KernelNode : Node
+{
+public:
+	KernelNode(int count, SOP& func) : Node("new" + count), function(func) { }
+	SOP function;
 };
 
 class FuncNode : Node
 {
 public:
-	FuncNode(const string &name) { this->name = name; }
+	FuncNode(const string& name);
 	~FuncNode();
 	vector<string> input;
-	vector<string> term;
+	unordered_map<string, int> input_index;	//name=>index
 
-	vector<set<string>> term_set;
+	vector<Term> function;
 
 	set<Term> cokernel_exist;	//check exist
 	vector<Term> cokernel;
 	vector<SOP> kernel;
-	
-	static map<SOP,int> kernelRecord_index;	//check exist
+
+	static map<SOP, int> kernelRecord_index;	//check exist
 	static vector<KernelRecord> kernelRecord;
 
 	void findAllKernel();
 private:
-	void findKernel(const int& col_current, const vector<int>& same_literal_row);
+	void findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix);
 };
 
 class KernelRecord

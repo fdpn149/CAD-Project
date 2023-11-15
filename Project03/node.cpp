@@ -3,31 +3,47 @@
 vector<KernelRecord> FuncNode::kernelRecord;
 map<SOP, int> FuncNode::kernelRecord_index;
 
+FuncNode::FuncNode(const string& name) : Node(name)
+{
+	
+}
+
 FuncNode::~FuncNode()
 {
 }
 
 void FuncNode::findAllKernel()
 {
+	vector<string> matrix(function.size(), string(input.size(), '0'));
+
+	for (int i = 0; i < function.size(); i++)
+	{
+		for (const string& literal : function[i])
+		{
+			matrix[i][input_index.at(literal)] = '1';
+		}
+	}
+
+
 	for (int col = 0; col < input.size(); col++)
 	{
 		vector<int> same_literal_row;
 
 		vector<Term> all_cokernel;
 
-		for (int row = 0; row < term.size(); row++)
+		for (int row = 0; row < function.size(); row++)
 		{
-			if (term[row][col] == '1')
+			if (matrix[row][col] == '1')
 				same_literal_row.push_back(row);
 		}
 		if (same_literal_row.size() > 1)
 		{
-			findKernel(col, same_literal_row);
+			findKernel(col, same_literal_row, matrix);
 		}
 	}
 }
 
-void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row)
+void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix)
 {
 	Term newCokernel;
 	newCokernel.insert(input[col_current]);
@@ -40,15 +56,13 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 			continue;
 
 		bool allone = true;
-		vector<int> one;
+		vector<int> one;	// index of row which the literal equal to 1
 
-		int i;
-
-		for (i = 0; i < same_literal_row.size(); i++)	//not the same as the 'row' outside
+		for (int row_in_slr : same_literal_row)
 		{
-			if (term[same_literal_row[i]][column] == '1')
+			if (matrix[row_in_slr][column] == '1')
 			{
-				one.push_back(same_literal_row[i]);
+				one.push_back(row_in_slr);
 			}
 			else	//0
 			{

@@ -8,6 +8,8 @@ Manager::~Manager()
 {
 	for (auto& node : funcNode)
 		delete node;
+	for (auto& node : kernelNode)
+		delete node;
 }
 
 bool Manager::ReadFile(const char* fileName)
@@ -58,49 +60,53 @@ bool Manager::processInput(ifstream& fileStream)
 			{
 				if (word != "\\")
 				{
-					inputs.push_back(word + "~");
 					inputs.push_back(word);
 				}
 				fileStream >> word;
 			}
 			string output(*inputs.rbegin());
 			inputs.pop_back();
-			inputs.pop_back();
 			FuncNode* newFunc = new FuncNode(output);
-			newFunc->input = inputs;
+
+			vector<string> act_input;	//actually input
+			unordered_map<string, int> ainput_index;	//act_input name=>index
 
 			while (word != ".names" && word != ".end")
 			{
-				string term;
-				set<string> term_set;
+				set<string> term;
 				for (int i = 0; i < word.length(); i++)
 				{
 					if (word[i] == '1')
 					{
-						term.append("01");
-						term_set.insert(inputs[2 * i + 1]);
+						term.insert(inputs[i]);
+						if (ainput_index.find(inputs[i]) == ainput_index.end())
+						{
+							ainput_index[inputs[i]] = act_input.size();
+							act_input.push_back(inputs[i]);
+						}
 					}
 					else if (word[i] == '0')
 					{
-						term.append("10");
-						term_set.insert(inputs[2 * i]);
-					}
-					else if (word[i] == '-')
-					{
-						term.append("00");
+						string name = inputs[i] + "~";
+						term.insert(name);
+						if (ainput_index.find(name) == ainput_index.end())
+						{
+							ainput_index[name] = act_input.size();
+							act_input.push_back(name);
+						}
 					}
 				}
-				newFunc->term.push_back(term);
-				newFunc->term_set.push_back(term_set);
+				newFunc->function.push_back(term);
 				fileStream >> word;
 				fileStream >> word;
 			}
+
+			newFunc->input = act_input;
+			newFunc->input_index = ainput_index;
 			newFunc->findAllKernel();
 			funcNode.push_back(newFunc);
 		}
 	}
-
-
 
 	return true;
 }
@@ -115,97 +121,55 @@ void Manager::MaxKernelSimplify()
 			max_it = it;
 	}
 
-	/*for (; max_it != FuncNode::kernelRecord.end(); max_it++)
-	{*/
+	//for (; max_it != FuncNode::kernelRecord.end(); max_it++)
+	//{
+
+	addNewNode(max_it->kernel);
+
 	for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
 	{
 		divideFunc(it->from, max_it->kernel, it->coKernel);
 	}
 	//}
+	newNodeCount++;
 }
 
 void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 {
-	vector<set<string>>& term_set = func->term_set;
+	vector<Term> dividend = func->function;
 
-	if (divisor.size() > term_set.size())	// divisor has too many terms
+	if (divisor.size() > dividend.size())	// divisor has too many terms
 		return;
 
 	// form dividend name & matrix
-	int index_count = 0;
-	unordered_map<string, int> dividend_name_index;
-	vector<string> dividend_name;
+	unordered_map<string, int> dividend_literal_index = func->input_index;
+	vector<string> dividend_literal = func->input;
 
-	for (const auto& i_term : term_set)
+	string init(dividend_literal.size(), '0');
+
+	int dividend_function_size = dividend.size();
+	vector<string> dividend_matrix(dividend_function_size, init);
+
+	for (int i = 0; i < dividend_function_size; i++)
 	{
-		for (const auto& literal : i_term)
+		for (const auto& literal : dividend[i])
 		{
-			if (dividend_name_index.find(literal) == dividend_name_index.end())
-			{
-				dividend_name_index[literal] = index_count;
-				dividend_name.push_back(literal);
-				index_count++;
-			}
-		}
-	}
-
-	string init(index_count, '0');
-
-	int term_set_size = term_set.size();
-	vector<string> dividend_matrix(term_set_size, init);
-
-	for (int i = 0; i < term_set_size; i++)
-	{
-		for (const auto& literal : term_set[i])
-		{
-			dividend_matrix[i][dividend_name_index.at(literal)] = '1';
+			dividend_matrix[i][dividend_literal_index.at(literal)] = '1';
 		}
 	}
 
 	// form quotient
-	string quotient_str(index_count, '0');
+	string quotient_str(dividend_literal.size(), '0');
 
 	for (const string& literal : quotient)
-		quotient_str[dividend_name_index.at(literal)] = '1';
-
-#pragma region FORM_DIVISOR
-	// form divisor name & matrix
-	/*index_count = 0;
-	unordered_map<string, int> divisor_name_index;
-	for (const auto& i_term : divisor)
-	{
-		for (const auto& literal : i_term)
-		{
-			if (divisor_name_index.find(literal) == divisor_name_index.end())
-			{
-				divisor_name_index[literal] = index_count;
-				index_count++;
-			}
-		}
-	}
-
-	string init2(index_count, '0');
-
-	int divisor_size = divisor.size();
-	vector<string> divisor_matrix(divisor_size, init2);
-
-	int matrix_index = 0;
-	for (auto it = divisor.begin(); it != divisor.end(); it++)
-	{
-		for (const auto& literal : *it)
-		{
-			divisor_matrix[matrix_index][divisor_name_index.at(literal)] = '1';
-		}
-		matrix_index++;
-	}*/
-#pragma endregion
+		quotient_str[dividend_literal_index.at(literal)] = '1';
 
 	vector<Term> remainder;
 	int divide_count = 0;
 	bool finished = false;
 
 	// divide
-	for (int i = 0; i < term_set.size(); i++)	//term_set[i] => dividend_term
+	for (int i = 0; i < dividend.size(); i++)	//term_set[i] => dividend_term
 	{
 		bool is_remainder = true;
 
@@ -215,11 +179,11 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 			{
 				int divisor_term_size = divisor_term.size();
 				bool found = false;
-				if (divisor_term_size < term_set[i].size())
+				if (divisor_term_size < dividend[i].size())
 				{
 					int count = 0;
 
-					for (const string& dividend_literal : term_set[i])
+					for (const string& dividend_literal : dividend[i])
 					{
 						for (const string& divisor_literal : divisor_term)
 						{
@@ -237,7 +201,7 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 							break;
 					}
 				}
-				else if (divisor_term.size() == term_set[i].size() && divisor_term == term_set[i])
+				else if (divisor_term.size() == dividend[i].size() && divisor_term == dividend[i])
 				{
 					found = true;
 
@@ -251,7 +215,7 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 
 					for (const string& divisor_literal : divisor_term)
 					{
-						dividend_copy[dividend_name_index.at(divisor_literal)] = '0';
+						dividend_copy[dividend_literal_index.at(divisor_literal)] = '0';
 					}
 
 					if (dividend_copy == quotient_str)
@@ -272,7 +236,13 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 		if (is_remainder == true)
 		{
 			printf("remain\n");
-			remainder.push_back(term_set[i]);
+			remainder.push_back(dividend[i]);
 		}
 	}
+}
+
+void Manager::addNewNode(SOP& kernel)
+{
+	KernelNode* newKernelNode = new KernelNode(newNodeCount, kernel);
+	kernelNode.push_back(newKernelNode);
 }

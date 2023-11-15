@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 
 using std::string;
 using std::vector;
@@ -15,3 +16,4 @@ using std::set;
 using std::pair;
 using std::map;
 using std::unordered_map;
+using std::unordered_set;
