@@ -17,8 +17,9 @@ public:
 class KernelNode : Node
 {
 public:
-	KernelNode(int count, SOP& func) : Node("new" + count), function(func) { }
+	KernelNode(int count, SOP& func) : Node("new" + std::to_string(count)), function(func) { }
 	SOP function;
+	string getName();
 };
 
 class FuncNode : Node
@@ -35,28 +36,29 @@ public:
 	vector<Term> cokernel;
 	vector<SOP> kernel;
 
-	static map<SOP, int> kernelRecord_index;	//check exist
-	static vector<KernelRecord> kernelRecord;
+	static map<SOP, KernelRecord> kernelRecord;
 
 	void findAllKernel();
 private:
 	void findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix);
+	void addKernelRecord(const SOP& kernel, const Term& coKernel);
 };
 
 class KernelRecord
 {
+public:
 	struct KernelDetail
 	{
 		int count;
 		Term coKernel;
-		FuncNode* from;
 	};
-public:
 	KernelRecord(FuncNode* f, const SOP& k, const Term& c);
+	KernelRecord(){}
 	int cost = 0;
 	SOP kernel;
-	void add(FuncNode* f, Term& c);
-	vector<KernelDetail> detail;
+	void add(FuncNode* f, const Term& c);
+	map<FuncNode*, KernelDetail> detail;
+	void removeSource(FuncNode* func, const int& cok_size);
 };
 
 #endif

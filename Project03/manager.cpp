@@ -68,9 +68,6 @@ bool Manager::processInput(ifstream& fileStream)
 			inputs.pop_back();
 			FuncNode* newFunc = new FuncNode(output);
 
-			vector<string> act_input;	//actually input
-			unordered_map<string, int> ainput_index;	//act_input name=>index
-
 			while (word != ".names" && word != ".end")
 			{
 				set<string> term;
@@ -79,20 +76,20 @@ bool Manager::processInput(ifstream& fileStream)
 					if (word[i] == '1')
 					{
 						term.insert(inputs[i]);
-						if (ainput_index.find(inputs[i]) == ainput_index.end())
+						if (newFunc->input_index.find(inputs[i]) == newFunc->input_index.end())
 						{
-							ainput_index[inputs[i]] = act_input.size();
-							act_input.push_back(inputs[i]);
+							newFunc->input_index[inputs[i]] = newFunc->input.size();
+							newFunc->input.push_back(inputs[i]);
 						}
 					}
 					else if (word[i] == '0')
 					{
 						string name = inputs[i] + "~";
 						term.insert(name);
-						if (ainput_index.find(name) == ainput_index.end())
+						if (newFunc->input_index.find(name) == newFunc->input_index.end())
 						{
-							ainput_index[name] = act_input.size();
-							act_input.push_back(name);
+							newFunc->input_index[name] = newFunc->input.size();
+							newFunc->input.push_back(name);
 						}
 					}
 				}
@@ -101,8 +98,6 @@ bool Manager::processInput(ifstream& fileStream)
 				fileStream >> word;
 			}
 
-			newFunc->input = act_input;
-			newFunc->input_index = ainput_index;
 			newFunc->findAllKernel();
 			funcNode.push_back(newFunc);
 		}
@@ -114,24 +109,46 @@ bool Manager::processInput(ifstream& fileStream)
 void Manager::MaxKernelSimplify()
 {
 	// find max cost
-	vector<KernelRecord>::iterator max_it = FuncNode::kernelRecord.begin();
-	for (auto it = max_it + 1; it != FuncNode::kernelRecord.end(); it++)
+	auto max_record_it = FuncNode::kernelRecord.begin();
+	auto temp_it = max_record_it;
+	for (temp_it++; temp_it != FuncNode::kernelRecord.end(); temp_it++)
 	{
-		if (it->cost > max_it->cost)
-			max_it = it;
+		if (temp_it->second.cost > max_record_it->second.cost)
+			max_record_it = temp_it;
 	}
 
-	//for (; max_it != FuncNode::kernelRecord.end(); max_it++)
-	//{
+	addNewNode(max_record_it->second.kernel);
 
-	addNewNode(max_it->kernel);
+	bool status = true;
 
-	for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
+	map<FuncNode*, KernelRecord::KernelDetail>::iterator max_record_func;
+	while (status == true && !max_record_it->second.detail.empty())
 	{
-		divideFunc(it->from, max_it->kernel, it->coKernel);
+		max_record_func = max_record_it->second.detail.begin();
+		divideFunc(max_record_func->first, max_record_it->second.kernel, max_record_func->second.coKernel);
+		status = reCalcCKernel(max_record_func->first, max_record_it->second.kernel);
 	}
-	//}
 	newNodeCount++;
+
+	/*for (auto max_it = FuncNode::kernelRecord.begin(); max_it != FuncNode::kernelRecord.end(); max_it++)
+	{
+		addNewNode(max_it->kernel);
+
+		for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
+		{
+			divideFunc(it->from, max_it->kernel, it->coKernel);
+		}
+	}
+	newNodeCount++;*/
+
+}
+
+void Manager::Simplify()
+{
+	while (!FuncNode::kernelRecord.empty())
+	{
+		MaxKernelSimplify();
+	}
 }
 
 void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
@@ -220,7 +237,6 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 
 					if (dividend_copy == quotient_str)
 					{
-						printf("found\n");
 						is_remainder = false;
 						divide_count++;
 
@@ -235,14 +251,61 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 
 		if (is_remainder == true)
 		{
-			printf("remain\n");
 			remainder.push_back(dividend[i]);
+		}
+	}
+
+	quotient.insert("new" + std::to_string(newNodeCount));	// add the new kernel node
+	vector<Term> newFunc(remainder.begin(), remainder.end());
+	newFunc.push_back(quotient);
+	func->function = newFunc;
+
+	func->input_index.clear();
+	func->input.clear();
+
+	for (const auto& term : newFunc)
+	{
+		for (const auto& literal : term)
+		{
+			if (func->input_index.find(literal) == func->input_index.end())
+			{
+				func->input_index[literal] = func->input.size();
+				func->input.push_back(literal);
+			}
 		}
 	}
 }
 
-void Manager::addNewNode(SOP& kernel)
+string Manager::addNewNode(SOP& kernel)
 {
 	KernelNode* newKernelNode = new KernelNode(newNodeCount, kernel);
 	kernelNode.push_back(newKernelNode);
+	return newKernelNode->getName();
+}
+
+bool Manager::reCalcCKernel(FuncNode* func, const SOP& kernel)
+{
+	bool status = true;
+
+	for (int i = 0; i < func->kernel.size(); i++)
+	{
+		auto kernelRecord = FuncNode::kernelRecord[func->kernel[i]];
+		if (kernelRecord.detail.size() > 1)
+			kernelRecord.removeSource(func, func->cokernel[i].size());
+		else
+		{
+			if(kernelRecord.kernel == kernel)
+				status = false;
+			FuncNode::kernelRecord.erase(func->kernel[i]);
+		}
+	}
+
+	func->kernel.clear();
+	func->cokernel.clear();
+	func->cokernel_exist.clear();
+
+	if (func->function.size() > 1)
+		func->findAllKernel();
+
+	return status;
 }

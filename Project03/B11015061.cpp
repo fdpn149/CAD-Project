@@ -4,7 +4,7 @@
 int main(int argc, char* argv[])
 {
 	Manager manager;
-	manager.ReadFile("two_level_blif/sample.blif");
-	manager.MaxKernelSimplify();
+	manager.ReadFile("two_level_blif/dalu.blif");
+	manager.Simplify();
 
 }

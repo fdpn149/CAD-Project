@@ -1,7 +1,6 @@
 #include "node.h"
 
-vector<KernelRecord> FuncNode::kernelRecord;
-map<SOP, int> FuncNode::kernelRecord_index;
+map<SOP, KernelRecord> FuncNode::kernelRecord;
 
 FuncNode::FuncNode(const string& name) : Node(name)
 {
@@ -45,6 +44,9 @@ void FuncNode::findAllKernel()
 
 void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix)
 {
+	if(col_current == 86 && matrix.size() == 153)
+		printf("");
+
 	Term newCokernel;
 	newCokernel.insert(input[col_current]);
 
@@ -95,16 +97,20 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 	cokernel.push_back(newCokernel);
 	kernel.push_back(newKernel);
 
+	addKernelRecord(newKernel, newCokernel);
+}
 
-	if (kernelRecord_index.find(newKernel) != kernelRecord_index.end())
+void FuncNode::addKernelRecord(const SOP& kernel, const Term& coKernel)
+{
+	auto it = kernelRecord.find(kernel);
+	if (it != kernelRecord.end())
 	{
-		kernelRecord.at(kernelRecord_index[newKernel]).add(this, newCokernel);
+		it->second.add(this, coKernel);
 	}
 	else
 	{
-		KernelRecord newKernelRecord(this, newKernel, newCokernel);
-		kernelRecord_index[newKernel] = kernelRecord.size();
-		kernelRecord.push_back(newKernelRecord);
+		KernelRecord newKernelRecord(this, kernel, coKernel);
+		kernelRecord[kernel] = newKernelRecord;
 	}
 }
 
@@ -112,11 +118,22 @@ KernelRecord::KernelRecord(FuncNode* f, const SOP& k, const Term& c)
 {
 	kernel = k;
 	cost = c.size() * (k.size() - 1) - 1;
-	detail.push_back({cost, c, f});
+	detail[f] = {cost, c};
 }
 
-void KernelRecord::add(FuncNode* f, Term& c)
+void KernelRecord::add(FuncNode* f, const Term& c)
 {
 	cost += c.size() * (kernel.size() - 1) - 1;
-	detail.push_back({ cost, c, f });
+	detail[f] = { cost, c };
+}
+
+void KernelRecord::removeSource(FuncNode* func, const int& cok_size)
+{
+	cost -= cok_size * (kernel.size() - 1) - 1;
+	detail.erase(func);
+}
+
+string KernelNode::getName()
+{
+	return name;
 }

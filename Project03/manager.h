@@ -14,11 +14,12 @@ public:
 	~Manager();
 	bool ReadFile(const char* fileName);
 	void MaxKernelSimplify();
-
+	void Simplify();
 private:
 	bool processInput(ifstream &fileStream);
 	void divideFunc(FuncNode* func, const SOP& divisor, Term& quotient);
-	void addNewNode(SOP& kernel);
+	string addNewNode(SOP& kernel);
+	bool reCalcCKernel(FuncNode* func, const SOP& kernel);	// return false if the kernel record been delete
 };
 
 #endif
