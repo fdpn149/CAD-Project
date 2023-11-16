@@ -15,6 +15,9 @@ class Manager
 
 	vector<string> special_name;
 
+	int input_literal_count = 0;
+	int simplified_literal_count = 0;
+
 public:
 	Manager();
 	~Manager();

@@ -89,6 +89,7 @@ bool Manager::processInput(ifstream& fileStream)
 				{
 					if (word[i] == '1')
 					{
+						input_literal_count++;
 						term.insert(inputs[i]);
 						if (newFunc->input_index.find(inputs[i]) == newFunc->input_index.end())
 						{
@@ -98,6 +99,7 @@ bool Manager::processInput(ifstream& fileStream)
 					}
 					else if (word[i] == '0')
 					{
+						input_literal_count++;
 						string name = inputs[i] + "~";
 						term.insert(name);
 						if (newFunc->input_index.find(name) == newFunc->input_index.end())
@@ -147,18 +149,6 @@ void Manager::MaxKernelSimplify()
 	}
 
 	newNodeCount++;
-
-	/*for (auto max_it = FuncNode::kernelRecord.begin(); max_it != FuncNode::kernelRecord.end(); max_it++)
-	{
-		addNewNode(max_it->kernel);
-
-		for (auto it = max_it->detail.begin(); it != max_it->detail.end(); it++)
-		{
-			divideFunc(it->from, max_it->kernel, it->coKernel);
-		}
-	}
-	newNodeCount++;*/
-
 }
 
 void Manager::Simplify()
@@ -218,10 +208,12 @@ void Manager::WriteFile()
 			{
 				if (*literal.rbegin() == '~')
 				{
+					simplified_literal_count++;
 					s[final_inputs_index.at(literal.substr(0, literal.size() - 1))] = '0';
 				}
 				else
 				{
+					simplified_literal_count++;
 					s[final_inputs_index.at(literal)] = '1';
 				}
 			}
@@ -271,10 +263,12 @@ void Manager::WriteFile()
 			{
 				if (*literal.rbegin() == '~')
 				{
+					simplified_literal_count++;
 					s[final_inputs_index.at(literal.substr(0, literal.size() - 1))] = '0';
 				}
 				else
 				{
+					simplified_literal_count++;
 					s[final_inputs_index.at(literal)] = '1';
 				}
 			}
@@ -283,6 +277,9 @@ void Manager::WriteFile()
 	}
 
 	outputStream << endl << ".end" << endl;
+
+	printf("Original literal count: %d\n", input_literal_count);
+	printf("Optimized literal count: %d\n", simplified_literal_count);
 }
 
 void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
