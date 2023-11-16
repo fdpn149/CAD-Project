@@ -30,7 +30,7 @@ public:
 	vector<string> input;
 	unordered_map<string, int> input_index;	//name=>index
 
-	vector<Term> function;
+	set<Term> function;
 
 	set<Term> cokernel_exist;	//check exist
 	vector<Term> cokernel;
@@ -39,6 +39,7 @@ public:
 	static map<SOP, KernelRecord> kernelRecord;
 
 	void findAllKernel();
+	string getName() { return name; };
 private:
 	void findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix);
 	void addKernelRecord(const SOP& kernel, const Term& coKernel);

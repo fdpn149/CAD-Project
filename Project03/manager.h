@@ -9,16 +9,23 @@ class Manager
 	vector<FuncNode *> funcNode;
 	vector<KernelNode*> kernelNode;
 	int newNodeCount = 0;
+	
+	string model_name;
+	vector<string> input, output;
+
+	vector<string> special_name;
+
 public:
 	Manager();
 	~Manager();
 	bool ReadFile(const char* fileName);
 	void MaxKernelSimplify();
 	void Simplify();
+	void WriteFile();
 private:
 	bool processInput(ifstream &fileStream);
 	void divideFunc(FuncNode* func, const SOP& divisor, Term& quotient);
-	string addNewNode(SOP& kernel);
+	void addNewNode(SOP& kernel);
 	bool reCalcCKernel(FuncNode* func, const SOP& kernel);	// return false if the kernel record been delete
 };
 

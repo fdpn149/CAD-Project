@@ -28,7 +28,10 @@ bool Manager::processInput(ifstream& fileStream)
 	string word;
 	fileStream >> word;
 	if (word == ".model")
+	{
 		fileStream >> word;
+		model_name = word;
+	}
 	fileStream >> word;
 	if (word == ".inputs")
 	{
@@ -36,7 +39,10 @@ bool Manager::processInput(ifstream& fileStream)
 		while (word != ".outputs")
 		{
 			if (word != "\\")
+			{
 				inputNode.push_back(word);
+				input.push_back(word);
+			}
 			fileStream >> word;
 		}
 	}
@@ -46,7 +52,10 @@ bool Manager::processInput(ifstream& fileStream)
 		while (word != ".names")
 		{
 			if (word != "\\")
+			{
 				outputNode.push_back(word);
+				output.push_back(word);
+			}
 			fileStream >> word;
 		}
 	}
@@ -55,11 +64,16 @@ bool Manager::processInput(ifstream& fileStream)
 		while (word != ".end")
 		{
 			fileStream >> word;
+
 			vector<string> inputs;
 			while (word[0] != '0' && word[0] != '1' && word[0] != '-')
 			{
 				if (word != "\\")
 				{
+					if (word == ".names")
+					{
+						break;
+					}
 					inputs.push_back(word);
 				}
 				fileStream >> word;
@@ -93,7 +107,7 @@ bool Manager::processInput(ifstream& fileStream)
 						}
 					}
 				}
-				newFunc->function.push_back(term);
+				newFunc->function.insert(term);
 				fileStream >> word;
 				fileStream >> word;
 			}
@@ -121,13 +135,17 @@ void Manager::MaxKernelSimplify()
 
 	bool status = true;
 
-	map<FuncNode*, KernelRecord::KernelDetail>::iterator max_record_func;
-	while (status == true && !max_record_it->second.detail.empty())
+	vector<pair<FuncNode*, KernelRecord::KernelDetail>> max_record_funcs(max_record_it->second.detail.begin(), max_record_it->second.detail.end());
+	
+	for (auto& max_record_func : max_record_funcs)
 	{
-		max_record_func = max_record_it->second.detail.begin();
-		divideFunc(max_record_func->first, max_record_it->second.kernel, max_record_func->second.coKernel);
-		status = reCalcCKernel(max_record_func->first, max_record_it->second.kernel);
+		divideFunc(max_record_func.first, max_record_it->second.kernel, max_record_func.second.coKernel);
+		status = reCalcCKernel(max_record_func.first, max_record_it->second.kernel);
+
+		if (status == false)
+			break;
 	}
+
 	newNodeCount++;
 
 	/*for (auto max_it = FuncNode::kernelRecord.begin(); max_it != FuncNode::kernelRecord.end(); max_it++)
@@ -151,9 +169,129 @@ void Manager::Simplify()
 	}
 }
 
+void Manager::WriteFile()
+{
+	ofstream outputStream("out.blif");
+	outputStream << ".model " << model_name << endl << ".inputs";
+	for (const string& s : input)
+		outputStream << " " << s;
+	outputStream << endl << ".outputs";
+	for (const string& s : output)
+		outputStream << " " << s;
+
+	for (const auto& funcs : funcNode)
+	{
+		outputStream << endl << ".names";
+
+		unordered_map<string, int> final_inputs_index;
+		vector<string> final_inputs;
+
+		for (const auto& func_input : funcs->input)
+		{
+			if (*func_input.rbegin() == '~')
+			{
+				string name = func_input.substr(0, func_input.size() - 1);
+				if (final_inputs_index.find(name) == final_inputs_index.end())
+				{
+					final_inputs_index[name] = final_inputs.size();
+					final_inputs.push_back(name);
+				}
+			}
+			else if (final_inputs_index.find(func_input) == final_inputs_index.end())
+			{
+				final_inputs_index[func_input] = final_inputs.size();
+				final_inputs.push_back(func_input);
+			}
+		}
+
+		for (const auto& final_input : final_inputs)
+		{
+			outputStream << " " << final_input;
+		}
+
+		outputStream << " " << funcs->getName();
+
+		for (const Term& term : funcs->function)
+		{
+			string s(final_inputs.size(), '-');
+			for (const string& literal : term)
+			{
+				if (*literal.rbegin() == '~')
+				{
+					s[final_inputs_index.at(literal.substr(0, literal.size() - 1))] = '0';
+				}
+				else
+				{
+					s[final_inputs_index.at(literal)] = '1';
+				}
+			}
+			outputStream << endl << s << " 1";
+		}
+	}
+
+	for (const auto& funcs : kernelNode)
+	{
+		outputStream << endl << ".names";
+
+		unordered_map<string, int> final_inputs_index;
+		vector<string> final_inputs;
+
+		for (const Term& term : funcs->function)
+		{
+			for (const string& literal : term)
+			{
+				if (*literal.rbegin() == '~')
+				{
+					string name = literal.substr(0, literal.size() - 1);
+					if (final_inputs_index.find(name) == final_inputs_index.end())
+					{
+						final_inputs_index[name] = final_inputs.size();
+						final_inputs.push_back(name);
+					}
+				}
+				else if (final_inputs_index.find(literal) == final_inputs_index.end())
+				{
+					final_inputs_index[literal] = final_inputs.size();
+					final_inputs.push_back(literal);
+				}
+			}
+		}
+
+		for (const auto& final_input : final_inputs)
+		{
+			outputStream << " " << final_input;
+		}
+
+		outputStream << " " << funcs->getName();
+
+		for (const Term& term : funcs->function)
+		{
+			string s(final_inputs.size(), '-');
+			for (const string& literal : term)
+			{
+				if (*literal.rbegin() == '~')
+				{
+					s[final_inputs_index.at(literal.substr(0, literal.size() - 1))] = '0';
+				}
+				else
+				{
+					s[final_inputs_index.at(literal)] = '1';
+				}
+			}
+			outputStream << endl << s << " 1";
+		}
+	}
+
+	outputStream << endl << ".end" << endl;
+}
+
 void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 {
-	vector<Term> dividend = func->function;
+	if (func->getName() == "x1")
+		printf("");
+
+
+	set<Term> dividend = func->function;
 
 	if (divisor.size() > dividend.size())	// divisor has too many terms
 		return;
@@ -167,12 +305,14 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 	int dividend_function_size = dividend.size();
 	vector<string> dividend_matrix(dividend_function_size, init);
 
-	for (int i = 0; i < dividend_function_size; i++)
+	int index = 0;
+	for (const Term& dividend_term : dividend)
 	{
-		for (const auto& literal : dividend[i])
+		for (const auto& literal : dividend_term)
 		{
-			dividend_matrix[i][dividend_literal_index.at(literal)] = '1';
+			dividend_matrix[index][dividend_literal_index.at(literal)] = '1';
 		}
+		index++;
 	}
 
 	// form quotient
@@ -185,8 +325,9 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 	int divide_count = 0;
 	bool finished = false;
 
+	index = 0;
 	// divide
-	for (int i = 0; i < dividend.size(); i++)	//term_set[i] => dividend_term
+	for (const Term& dividend_term : dividend)
 	{
 		bool is_remainder = true;
 
@@ -196,11 +337,11 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 			{
 				int divisor_term_size = divisor_term.size();
 				bool found = false;
-				if (divisor_term_size < dividend[i].size())
+				if (divisor_term_size < dividend_term.size())
 				{
 					int count = 0;
 
-					for (const string& dividend_literal : dividend[i])
+					for (const string& dividend_literal : dividend_term)
 					{
 						for (const string& divisor_literal : divisor_term)
 						{
@@ -218,7 +359,7 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 							break;
 					}
 				}
-				else if (divisor_term.size() == dividend[i].size() && divisor_term == dividend[i])
+				else if (divisor_term.size() == dividend_term.size() && divisor_term == dividend_term)
 				{
 					found = true;
 
@@ -228,7 +369,7 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 
 				if (found)
 				{
-					string dividend_copy(dividend_matrix[i]);
+					string dividend_copy(dividend_matrix[index]);
 
 					for (const string& divisor_literal : divisor_term)
 					{
@@ -251,13 +392,14 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 
 		if (is_remainder == true)
 		{
-			remainder.push_back(dividend[i]);
+			remainder.push_back(dividend_term);
 		}
+		index++;
 	}
 
 	quotient.insert("new" + std::to_string(newNodeCount));	// add the new kernel node
-	vector<Term> newFunc(remainder.begin(), remainder.end());
-	newFunc.push_back(quotient);
+	set<Term> newFunc(remainder.begin(), remainder.end());
+	newFunc.insert(quotient);
 	func->function = newFunc;
 
 	func->input_index.clear();
@@ -276,11 +418,10 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 	}
 }
 
-string Manager::addNewNode(SOP& kernel)
+void Manager::addNewNode(SOP& kernel)
 {
 	KernelNode* newKernelNode = new KernelNode(newNodeCount, kernel);
 	kernelNode.push_back(newKernelNode);
-	return newKernelNode->getName();
 }
 
 bool Manager::reCalcCKernel(FuncNode* func, const SOP& kernel)
@@ -289,14 +430,19 @@ bool Manager::reCalcCKernel(FuncNode* func, const SOP& kernel)
 
 	for (int i = 0; i < func->kernel.size(); i++)
 	{
-		auto kernelRecord = FuncNode::kernelRecord[func->kernel[i]];
-		if (kernelRecord.detail.size() > 1)
-			kernelRecord.removeSource(func, func->cokernel[i].size());
-		else
+		auto kernelRecord_it = FuncNode::kernelRecord.find(func->kernel[i]);
+		if (kernelRecord_it != FuncNode::kernelRecord.end())
 		{
-			if(kernelRecord.kernel == kernel)
-				status = false;
-			FuncNode::kernelRecord.erase(func->kernel[i]);
+			if (kernelRecord_it->second.detail.size() > 1)
+			{
+				kernelRecord_it->second.removeSource(func, func->cokernel[i].size());
+			}
+			else
+			{
+				if (kernelRecord_it->second.kernel == kernel)
+					status = false;
+				FuncNode::kernelRecord.erase(func->kernel[i]);
+			}
 		}
 	}
 

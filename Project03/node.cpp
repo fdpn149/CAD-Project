@@ -15,12 +15,14 @@ void FuncNode::findAllKernel()
 {
 	vector<string> matrix(function.size(), string(input.size(), '0'));
 
-	for (int i = 0; i < function.size(); i++)
+	int index = 0;
+	for(const Term& term : function)
 	{
-		for (const string& literal : function[i])
+		for (const string& literal : term)
 		{
-			matrix[i][input_index.at(literal)] = '1';
+			matrix[index][input_index.at(literal)] = '1';
 		}
+		index++;
 	}
 
 
@@ -105,7 +107,10 @@ void FuncNode::addKernelRecord(const SOP& kernel, const Term& coKernel)
 	auto it = kernelRecord.find(kernel);
 	if (it != kernelRecord.end())
 	{
-		it->second.add(this, coKernel);
+		if (it->second.detail.find(this) == it->second.detail.end())
+			it->second.add(this, coKernel);
+		else
+			printf("");
 	}
 	else
 	{
@@ -123,8 +128,9 @@ KernelRecord::KernelRecord(FuncNode* f, const SOP& k, const Term& c)
 
 void KernelRecord::add(FuncNode* f, const Term& c)
 {
+	int new_cost = c.size() * (kernel.size() - 1) - 1;
+	detail[f] = { new_cost, c };
 	cost += c.size() * (kernel.size() - 1) - 1;
-	detail[f] = { cost, c };
 }
 
 void KernelRecord::removeSource(FuncNode* func, const int& cok_size)
