@@ -21,6 +21,10 @@ class Manager
 	vector<SOP> kernel;
 	vector<vector<int>> divideTerm;
 
+	vector<Term> terms;
+	unordered_map<string, vector<vector<string>>> names;
+	unordered_map<string, set<string>> names_input;
+
 public:
 	Manager();
 	~Manager();

@@ -170,14 +170,14 @@ void Manager::WriteFile()
 	for (const string& s : output)
 		outputStream << " " << s;
 
-	for (const auto& funcs : funcNode)
+	for (const auto& funcs : names)
 	{
 		outputStream << endl << ".names";
 
 		unordered_map<string, int> final_inputs_index;
 		vector<string> final_inputs;
 
-		for (const auto& func_input : funcs->input)
+		for (const auto& func_input : names_input[funcs.first])
 		{
 			if (*func_input.rbegin() == '~')
 			{
@@ -200,9 +200,9 @@ void Manager::WriteFile()
 			outputStream << " " << final_input;
 		}
 
-		outputStream << " " << funcs->getName();
+		outputStream << " " << funcs.first;
 
-		for (const Term& term : funcs->function)
+		for (const vector<string>& term : funcs.second)
 		{
 			string s(final_inputs.size(), '-');
 			for (const string& literal : term)
@@ -508,7 +508,6 @@ void Manager::detailSimplify()
 {
 	vector<string> literals;
 	unordered_map<string, int> literals_index;
-	vector<Term> terms;
 
 
 	for (int i = 0; i < funcNode.size(); i++)
@@ -532,7 +531,6 @@ void Manager::detailSimplify()
 			terms.push_back(term_to_push);
 		}
 	}
-
 	vector<string> matrix(terms.size(), string(literals.size(), '0'));
 
 	for (int i = 0; i < terms.size(); i++)
@@ -542,6 +540,7 @@ void Manager::detailSimplify()
 			matrix[i][literals_index.at(literal)] = '1';
 		}
 	}
+
 
 	for (int col = 0; col < literals.size(); col++)
 	{
@@ -578,21 +577,42 @@ void Manager::detailSimplify()
 			}
 		}
 
-		SOP sop({ cokernel[max_index] });
-		addNewNode(sop);
-
-		for (int index : divideTerm[max_index])
+		if (max > 0)
 		{
-			set<string> difference;
-			std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
-			if (difference.size() != terms[index].size() - cokernel[max_index].size())
-				printf("Fatal ERROR\n");
-			difference.insert("new" + std::to_string(newNodeCount));
-			terms[index] = difference;
+			SOP sop({ cokernel[max_index] });
+			addNewNode(sop);
+
+			for (int index : divideTerm[max_index])
+			{
+				set<string> difference;
+				std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
+				if (difference.size() != terms[index].size() - cokernel[max_index].size())
+					printf("Fatal ERROR\n");
+				difference.insert("new" + std::to_string(newNodeCount));
+				terms[index] = difference;
+			}
+			newNodeCount++;
 		}
+	}
 
-		newNodeCount++;
-
-
+	for (const Term& term : terms)
+	{
+		vector<string> in;
+		string out;
+		set<string> in_set;
+		for (const string& literal : term)
+		{
+			if (literal.substr(0, 5) == "extra")
+			{
+				out = literal.substr(5);
+			}
+			else
+			{
+				in.push_back(literal);
+				in_set.insert(literal);
+			}
+		}
+		names[out].push_back(in);
+		names_input[out].insert(in_set.begin(), in_set.end());
 	}
 }
