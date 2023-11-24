@@ -19,7 +19,7 @@ class KernelNode : Node
 public:
 	KernelNode(int count, SOP& func) : Node("new" + std::to_string(count)), function(func) { }
 	SOP function;
-	string getName();
+	string getName() { return name; };
 };
 
 class FuncNode : Node

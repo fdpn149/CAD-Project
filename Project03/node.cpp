@@ -46,9 +46,6 @@ void FuncNode::findAllKernel()
 
 void FuncNode::findKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix)
 {
-	if(col_current == 86 && matrix.size() == 153)
-		printf("");
-
 	Term newCokernel;
 	newCokernel.insert(input[col_current]);
 
@@ -137,9 +134,4 @@ void KernelRecord::removeSource(FuncNode* func, const int& cok_size)
 {
 	cost -= cok_size * (kernel.size() - 1) - 1;
 	detail.erase(func);
-}
-
-string KernelNode::getName()
-{
-	return name;
 }

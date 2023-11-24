@@ -13,10 +13,13 @@ class Manager
 	string model_name;
 	vector<string> input, output;
 
-	vector<string> special_name;
-
 	int input_literal_count = 0;
 	int simplified_literal_count = 0;
+
+	set<Term> cokernel_exist;	//check exist
+	vector<Term> cokernel;
+	vector<SOP> kernel;
+	vector<vector<int>> divideTerm;
 
 public:
 	Manager();
@@ -30,6 +33,8 @@ private:
 	void divideFunc(FuncNode* func, const SOP& divisor, Term& quotient);
 	void addNewNode(SOP& kernel);
 	bool reCalcCKernel(FuncNode* func, const SOP& kernel);	// return false if the kernel record been delete
+	void detailSimplify();
+	void findGlobalKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix, vector<string>& literals, unordered_map<string, int>& literals_index);
 };
 
 #endif
