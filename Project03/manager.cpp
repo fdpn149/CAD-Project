@@ -516,85 +516,109 @@ void Manager::detailSimplify()
 		literals_index[extra_col] = literals.size();
 		literals.push_back(extra_col);
 
-		for (const Term& term : funcNode[i]->function)
+		if (funcNode[i]->function.size() == 0)
 		{
-			for (const string& literal : term)
+			Term dummyTerm;
+			dummyTerm.insert(extra_col);
+			terms.push_back(dummyTerm);
+		}
+		else
+		{
+			for (const Term& term : funcNode[i]->function)
 			{
-				if (literals_index.find(literal) == literals_index.end())
+				for (const string& literal : term)
 				{
-					literals_index[literal] = literals.size();
-					literals.push_back(literal);
+					if (literals_index.find(literal) == literals_index.end())
+					{
+						literals_index[literal] = literals.size();
+						literals.push_back(literal);
+					}
+				}
+				Term term_to_push(term);
+				term_to_push.insert(extra_col);
+				terms.push_back(term_to_push);
+			}
+		}
+	}
+
+	bool modify;
+
+	do {
+		modify = false;
+		cokernel.clear();
+		kernel.clear();
+		cokernel_exist.clear();
+		divideTerm.clear();
+		vector<string> matrix(terms.size(), string(literals.size(), '0'));
+
+		for (int i = 0; i < terms.size(); i++)
+		{
+			for (const string& literal : terms[i])
+			{
+				matrix[i][literals_index.at(literal)] = '1';
+			}
+		}
+
+
+		for (int col = 0; col < literals.size(); col++)
+		{
+			if (literals[col].substr(0, 5) == "extra")
+				continue;
+
+			vector<int> same_literal_row;
+
+			vector<Term> all_cokernel;
+
+			for (int row = 0; row < terms.size(); row++)
+			{
+				if (matrix[row][col] == '1')
+					same_literal_row.push_back(row);
+			}
+			if (same_literal_row.size() > 1)
+			{
+				findGlobalKernel(col, same_literal_row, matrix, literals, literals_index);
+			}
+		}
+
+		if (!cokernel.empty())
+		{
+			int max = kernel[0].size() * (cokernel[0].size() - 1) - cokernel[0].size();
+			int max_index = 0;
+
+			for (int i = 1; i < cokernel.size(); i++)
+			{
+				int num = kernel[i].size() * (cokernel[i].size() - 1) - cokernel[i].size();
+				if (num > max)
+				{
+					max = num;
+					max_index = i;
 				}
 			}
-			Term term_to_push(term);
-			term_to_push.insert(extra_col);
-			terms.push_back(term_to_push);
-		}
-	}
-	vector<string> matrix(terms.size(), string(literals.size(), '0'));
 
-	for (int i = 0; i < terms.size(); i++)
-	{
-		for (const string& literal : terms[i])
-		{
-			matrix[i][literals_index.at(literal)] = '1';
-		}
-	}
-
-
-	for (int col = 0; col < literals.size(); col++)
-	{
-		if (literals[col].substr(0, 5) == "extra")
-			continue;
-
-		vector<int> same_literal_row;
-
-		vector<Term> all_cokernel;
-
-		for (int row = 0; row < terms.size(); row++)
-		{
-			if (matrix[row][col] == '1')
-				same_literal_row.push_back(row);
-		}
-		if (same_literal_row.size() > 1)
-		{
-			findGlobalKernel(col, same_literal_row, matrix, literals, literals_index);
-		}
-	}
-
-	if (!cokernel.empty())
-	{
-		int max = kernel[0].size() * (cokernel[0].size() - 1) - cokernel[0].size();
-		int max_index = 0;
-
-		for (int i = 1; i < cokernel.size(); i++)
-		{
-			int num = kernel[i].size() * (cokernel[i].size() - 1) - cokernel[i].size();
-			if (num > max)
+			if (max > 0)
 			{
-				max = num;
-				max_index = i;
+				modify = true;
+				SOP sop({ cokernel[max_index] });
+				addNewNode(sop);
+				string newNode_name = "new" + std::to_string(newNodeCount);
+				literals_index[newNode_name] = literals.size();
+				literals.push_back(newNode_name);
+
+
+				for (int index : divideTerm[max_index])
+				{
+					set<string> difference;
+					std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
+					if (difference.size() != terms[index].size() - cokernel[max_index].size())
+						printf("Fatal ERROR\n");
+					difference.insert("new" + std::to_string(newNodeCount));
+					terms[index] = difference;
+				}
+				newNodeCount++;
 			}
 		}
 
-		if (max > 0)
-		{
-			SOP sop({ cokernel[max_index] });
-			addNewNode(sop);
-
-			for (int index : divideTerm[max_index])
-			{
-				set<string> difference;
-				std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
-				if (difference.size() != terms[index].size() - cokernel[max_index].size())
-					printf("Fatal ERROR\n");
-				difference.insert("new" + std::to_string(newNodeCount));
-				terms[index] = difference;
-			}
-			newNodeCount++;
-		}
-	}
-
+	} while (modify);
 	for (const Term& term : terms)
 	{
 		vector<string> in;
@@ -612,7 +636,12 @@ void Manager::detailSimplify()
 				in_set.insert(literal);
 			}
 		}
-		names[out].push_back(in);
-		names_input[out].insert(in_set.begin(), in_set.end());
+		if (!in.empty())
+		{
+			names[out].push_back(in);
+			names_input[out].insert(in_set.begin(), in_set.end());
+		}
+		else
+			names[out];
 	}
 }
