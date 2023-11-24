@@ -124,31 +124,53 @@ bool Manager::processInput(ifstream& fileStream)
 
 void Manager::MaxKernelSimplify()
 {
-	// find max cost
-	auto max_record_it = FuncNode::kernelRecord.begin();
-	auto temp_it = max_record_it;
-	for (temp_it++; temp_it != FuncNode::kernelRecord.end(); temp_it++)
+	if (FuncNode::kernelRecord.empty())
+		return;
+
+	vector<SOP> to_delete_record;	// will delete in the end
+
+
+	map<SOP, KernelRecord>::iterator record_it = FuncNode::kernelRecord.begin();
+	map<SOP, KernelRecord>::iterator max_record_it = FuncNode::kernelRecord.begin();
+
+	for (record_it++; record_it != FuncNode::kernelRecord.end(); record_it++)
 	{
-		if (temp_it->second.cost > max_record_it->second.cost)
-			max_record_it = temp_it;
+		if (record_it->second.cost > max_record_it->second.cost)
+			max_record_it = record_it;
 	}
 
-	addNewNode(max_record_it->second.kernel);
+	addNewNode(max_record_it->first);
 
-	bool status = true;
-
-	vector<pair<FuncNode*, KernelRecord::KernelDetail>> max_record_funcs(max_record_it->second.detail.begin(), max_record_it->second.detail.end());
-	
-	for (auto& max_record_func : max_record_funcs)
+	for (auto func_detail_it = max_record_it->second.detail.begin(); func_detail_it != max_record_it->second.detail.end(); func_detail_it++)
 	{
-		divideFunc(max_record_func.first, max_record_it->second.kernel, max_record_func.second.coKernel);
-		status = reCalcCKernel(max_record_func.first, max_record_it->second.kernel);
+		divideFunc(func_detail_it->first, max_record_it->first, func_detail_it->second.coKernel);
 
-		if (status == false)
-			break;
+		for (SOP& kernel_in_func : func_detail_it->first->kernel)
+		{
+			if (kernel_in_func != max_record_it->first)
+			{
+				if (FuncNode::kernelRecord[kernel_in_func].detail.size() > 1)
+					FuncNode::kernelRecord[kernel_in_func].detail.erase(func_detail_it->first);
+				else
+					to_delete_record.push_back(kernel_in_func);
+			}
+		}
+
+		func_detail_it->first->cokernel.clear();
+		func_detail_it->first->cokernel_exist.clear();
+		func_detail_it->first->kernel.clear();
+
+		if (func_detail_it->first->function.size() > 1)
+			func_detail_it->first->findAllKernel();
 	}
-
 	newNodeCount++;
+
+	FuncNode::kernelRecord.erase(max_record_it);
+
+	for (const SOP& record : to_delete_record)
+	{
+		FuncNode::kernelRecord.erase(record);
+	}
 }
 
 void Manager::Simplify()
@@ -415,40 +437,9 @@ void Manager::divideFunc(FuncNode* func, const SOP& divisor, Term& quotient)
 	}
 }
 
-void Manager::addNewNode(SOP& kernel)
+void Manager::addNewNode(SOP kernel)
 {
 	KernelNode* newKernelNode = new KernelNode(newNodeCount, kernel);
 	kernelNode.push_back(newKernelNode);
 }
 
-bool Manager::reCalcCKernel(FuncNode* func, const SOP& kernel)
-{
-	bool status = true;
-
-	for (int i = 0; i < func->kernel.size(); i++)
-	{
-		auto kernelRecord_it = FuncNode::kernelRecord.find(func->kernel[i]);
-		if (kernelRecord_it != FuncNode::kernelRecord.end())
-		{
-			if (kernelRecord_it->second.detail.size() > 1)
-			{
-				kernelRecord_it->second.removeSource(func, func->cokernel[i].size());
-			}
-			else
-			{
-				if (kernelRecord_it->second.kernel == kernel)
-					status = false;
-				FuncNode::kernelRecord.erase(func->kernel[i]);
-			}
-		}
-	}
-
-	func->kernel.clear();
-	func->cokernel.clear();
-	func->cokernel_exist.clear();
-
-	if (func->function.size() > 1)
-		func->findAllKernel();
-
-	return status;
-}

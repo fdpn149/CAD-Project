@@ -28,8 +28,7 @@ public:
 private:
 	bool processInput(ifstream &fileStream);
 	void divideFunc(FuncNode* func, const SOP& divisor, Term& quotient);
-	void addNewNode(SOP& kernel);
-	bool reCalcCKernel(FuncNode* func, const SOP& kernel);	// return false if the kernel record been delete
+	void addNewNode(SOP kernel);
 };
 
 #endif
