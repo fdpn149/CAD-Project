@@ -244,7 +244,7 @@ void Manager::WriteFile()
 		}
 	}
 
-	for (const KernelNode* funcs : kernelNode)
+	/*for (const KernelNode* funcs : kernelNode)
 	{
 		outputStream << endl << ".names";
 
@@ -297,7 +297,7 @@ void Manager::WriteFile()
 			}
 			outputStream << endl << s << " 1";
 		}
-	}
+	}*/
 
 	outputStream << endl << ".end" << endl;
 
@@ -499,7 +499,6 @@ void Manager::detailSimplify()
 	vector<string> literals;
 	unordered_map<string, int> literals_index;
 
-
 	for (int i = 0; i < funcNode.size(); i++)
 	{
 		string extra_col = "extra" + funcNode[i]->getName();
@@ -530,117 +529,132 @@ void Manager::detailSimplify()
 			}
 		}
 	}
-
-	/*for (int i = 0; i < kernelNode.size(); i++)
-	{
-		string extra_col = "extra" + kernelNode[i]->getName();
-		literals_index[extra_col] = (int)literals.size();
-		literals.push_back(extra_col);
-
-		if (kernelNode[i]->function.size() == 0)
-		{
-			Term dummyTerm;
-			dummyTerm.insert(extra_col);
-			terms.push_back(dummyTerm);
-		}
-		else
-		{
-			for (const Term& term : kernelNode[i]->function)
-			{
-				for (const string& literal : term)
-				{
-					if (literals_index.find(literal) == literals_index.end())
-					{
-						literals_index[literal] = (int)literals.size();
-						literals.push_back(literal);
-					}
-				}
-				Term term_to_push(term);
-				term_to_push.insert(extra_col);
-				terms.push_back(term_to_push);
-			}
-		}
-	}
-
-	kernelNode.clear();*/
+	
+	bool repeat;
+	size_t previous_kernelNode_size = kernelNode.size();
 	bool modify;
 
 	do {
-		modify = false;
-		cokernel.clear();
-		kernel.clear();
-		cokernel_exist.clear();
-		divideTerm.clear();
-		vector<string> matrix(terms.size(), string(literals.size(), '0'));
+		repeat = false;
+		do {
+			modify = false;
+			cokernel.clear();
+			kernel.clear();
+			cokernel_exist.clear();
+			divideTerm.clear();
+			vector<string> matrix(terms.size(), string(literals.size(), '0'));
 
-		for (int i = 0; i < terms.size(); i++)
-		{
-			for (const string& literal : terms[i])
+			for (int i = 0; i < terms.size(); i++)
 			{
-				matrix[i][literals_index.at(literal)] = '1';
-			}
-		}
-
-
-		for (int col = 0; col < literals.size(); col++)
-		{
-			if (literals[col].substr(0, 5) == "extra")
-				continue;
-
-			vector<int> same_literal_row;
-
-			vector<Term> all_cokernel;
-
-			for (int row = 0; row < terms.size(); row++)
-			{
-				if (matrix[row][col] == '1')
-					same_literal_row.push_back(row);
-			}
-			if (same_literal_row.size() > 1)
-			{
-				findGlobalKernel(col, same_literal_row, matrix, literals, literals_index);
-			}
-		}
-
-		if (!cokernel.empty())
-		{
-			int max = (int)kernel[0].size() * ((int)cokernel[0].size() - 1) - (int)cokernel[0].size();
-			int max_index = 0;
-
-			for (int i = 1; i < cokernel.size(); i++)
-			{
-				int num = (int)kernel[i].size() * ((int)cokernel[i].size() - 1) - (int)cokernel[i].size();
-				if (num > max)
+				for (const string& literal : terms[i])
 				{
-					max = num;
-					max_index = i;
+					matrix[i][literals_index.at(literal)] = '1';
 				}
 			}
 
-			if (max > 0)
+
+			for (int col = 0; col < literals.size(); col++)
 			{
-				modify = true;
-				SOP sop({ cokernel[max_index] });
-				addNewNode(sop);
-				string newNode_name = "new" + std::to_string(newNodeCount);
-				literals_index[newNode_name] = (int)literals.size();
-				literals.push_back(newNode_name);
+				if (literals[col].substr(0, 5) == "extra")
+					continue;
 
+				vector<int> same_literal_row;
 
-				for (int index : divideTerm[max_index])
+				vector<Term> all_cokernel;
+
+				for (int row = 0; row < terms.size(); row++)
 				{
-					set<string> difference;
-					std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
-					if ((int)difference.size() != (int)terms[index].size() - (int)cokernel[max_index].size())
-						printf("Fatal ERROR\n");
-					difference.insert("new" + std::to_string(newNodeCount));
-					terms[index] = difference;
+					if (matrix[row][col] == '1')
+						same_literal_row.push_back(row);
 				}
-				newNodeCount++;
+				if (same_literal_row.size() > 1)
+				{
+					findGlobalKernel(col, same_literal_row, matrix, literals, literals_index);
+				}
+			}
+
+			if (!cokernel.empty())
+			{
+				int max = (int)kernel[0].size() * ((int)cokernel[0].size() - 1) - (int)cokernel[0].size();
+				int max_index = 0;
+
+				for (int i = 1; i < cokernel.size(); i++)
+				{
+					int num = (int)kernel[i].size() * ((int)cokernel[i].size() - 1) - (int)cokernel[i].size();
+					if (num > max)
+					{
+						max = num;
+						max_index = i;
+					}
+				}
+
+				if (max > 0)
+				{
+					modify = true;
+					SOP sop({ cokernel[max_index] });
+					addNewNode(sop);
+					string newNode_name = "new" + std::to_string(newNodeCount);
+					literals_index[newNode_name] = (int)literals.size();
+					literals.push_back(newNode_name);
+
+
+					for (int index : divideTerm[max_index])
+					{
+						set<string> difference;
+						std::set_difference(terms[index].begin(), terms[index].end(), cokernel[max_index].begin(), cokernel[max_index].end(), std::inserter(difference, difference.end()));
+						if ((int)difference.size() != (int)terms[index].size() - (int)cokernel[max_index].size())
+							printf("Fatal ERROR\n");
+						difference.insert("new" + std::to_string(newNodeCount));
+						terms[index] = difference;
+					}
+					newNodeCount++;
+				}
+			}
+
+		} while (modify);
+
+
+		for (int i = 0; i < kernelNode.size(); i++)
+		{
+			string extra_col = "extra" + kernelNode[i]->getName();
+			literals_index[extra_col] = (int)literals.size();
+			literals.push_back(extra_col);
+
+			if (kernelNode[i]->function.size() == 0)
+			{
+				Term dummyTerm;
+				dummyTerm.insert(extra_col);
+				terms.push_back(dummyTerm);
+			}
+			else
+			{
+				for (const Term& term : kernelNode[i]->function)
+				{
+					for (const string& literal : term)
+					{
+						if (literals_index.find(literal) == literals_index.end())
+						{
+							literals_index[literal] = (int)literals.size();
+							literals.push_back(literal);
+						}
+					}
+					Term term_to_push(term);
+					term_to_push.insert(extra_col);
+					terms.push_back(term_to_push);
+				}
 			}
 		}
 
-	} while (modify);
+
+		if (!kernelNode.empty() && previous_kernelNode_size != kernelNode.size())
+		{
+			previous_kernelNode_size = kernelNode.size();
+			kernelNode.clear();
+			repeat = true;
+		}
+	}while (repeat);
+
+
 	for (const Term& term : terms)
 	{
 		vector<string> in;
@@ -667,3 +681,4 @@ void Manager::detailSimplify()
 			names[out];
 	}
 }
+

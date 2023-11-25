@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
 {
 	Manager manager;
 	manager.ReadFile(argv[1]);
-	//manager.ReadFile("two_level_blif/sample.blif");
+	//manager.ReadFile("two_level_blif/ex5p.blif");
 	manager.Simplify();
 	manager.WriteFile();
 }
