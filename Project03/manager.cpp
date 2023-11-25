@@ -531,6 +531,38 @@ void Manager::detailSimplify()
 		}
 	}
 
+	/*for (int i = 0; i < kernelNode.size(); i++)
+	{
+		string extra_col = "extra" + kernelNode[i]->getName();
+		literals_index[extra_col] = (int)literals.size();
+		literals.push_back(extra_col);
+
+		if (kernelNode[i]->function.size() == 0)
+		{
+			Term dummyTerm;
+			dummyTerm.insert(extra_col);
+			terms.push_back(dummyTerm);
+		}
+		else
+		{
+			for (const Term& term : kernelNode[i]->function)
+			{
+				for (const string& literal : term)
+				{
+					if (literals_index.find(literal) == literals_index.end())
+					{
+						literals_index[literal] = (int)literals.size();
+						literals.push_back(literal);
+					}
+				}
+				Term term_to_push(term);
+				term_to_push.insert(extra_col);
+				terms.push_back(term_to_push);
+			}
+		}
+	}
+
+	kernelNode.clear();*/
 	bool modify;
 
 	do {
