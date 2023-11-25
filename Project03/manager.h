@@ -35,8 +35,7 @@ public:
 private:
 	bool processInput(ifstream &fileStream);
 	void divideFunc(FuncNode* func, const SOP& divisor, Term& quotient);
-	void addNewNode(SOP& kernel);
-	bool reCalcCKernel(FuncNode* func, const SOP& kernel);	// return false if the kernel record been delete
+	void addNewNode(SOP kernel);
 	void detailSimplify();
 	void findGlobalKernel(const int& col_current, const vector<int>& same_literal_row, vector<string>& matrix, vector<string>& literals, unordered_map<string, int>& literals_index);
 };

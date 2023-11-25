@@ -87,7 +87,7 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 		return;
 
 	SOP newKernel;
-	for (const auto& tempKernel : newTempKernel)
+	for (const pair<const int, Term>& tempKernel : newTempKernel)
 	{
 		newKernel.insert(tempKernel.second);
 	}
@@ -101,13 +101,11 @@ void FuncNode::findKernel(const int& col_current, const vector<int>& same_litera
 
 void FuncNode::addKernelRecord(const SOP& kernel, const Term& coKernel)
 {
-	auto it = kernelRecord.find(kernel);
+	map<SOP,KernelRecord>::iterator it = kernelRecord.find(kernel);
 	if (it != kernelRecord.end())
 	{
 		if (it->second.detail.find(this) == it->second.detail.end())
 			it->second.add(this, coKernel);
-		else
-			printf("");
 	}
 	else
 	{
@@ -119,19 +117,19 @@ void FuncNode::addKernelRecord(const SOP& kernel, const Term& coKernel)
 KernelRecord::KernelRecord(FuncNode* f, const SOP& k, const Term& c)
 {
 	kernel = k;
-	cost = c.size() * (k.size() - 1) - 1;
+	cost = (int)c.size() * ((int)k.size() - 1) - 1;
 	detail[f] = {cost, c};
 }
 
 void KernelRecord::add(FuncNode* f, const Term& c)
 {
-	int new_cost = c.size() * (kernel.size() - 1) - 1;
+	int new_cost = (int)c.size() * ((int)kernel.size() - 1) - 1;
 	detail[f] = { new_cost, c };
-	cost += c.size() * (kernel.size() - 1) - 1;
+	cost += (int)c.size() * ((int)kernel.size() - 1) - 1;
 }
 
 void KernelRecord::removeSource(FuncNode* func, const int& cok_size)
 {
-	cost -= cok_size * (kernel.size() - 1) - 1;
+	cost -= cok_size * ((int)kernel.size() - 1) - 1;
 	detail.erase(func);
 }
